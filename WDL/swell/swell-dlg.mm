@@ -1747,7 +1747,7 @@ static HWND last_key_window;
   if((int)frameRect.size.width != (int)lastFrameSize.width || (int)frameRect.size.height != (int)lastFrameSize.height) { \
     SWELL_hwndChild *hc = (SWELL_hwndChild*)[self contentView]; \
     sendSwellMessage(hc,WM_SIZE,0,0); \
-    if ([hc isOpaque]) InvalidateRect((HWND)hc,NULL,FALSE); \
+    InvalidateRect((HWND)hc,NULL,FALSE); \
     lastFrameSize=frameRect.size; \
    } \
 } \
