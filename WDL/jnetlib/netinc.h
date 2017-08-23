@@ -14,14 +14,20 @@
 #include <windows.h>
 #include <stdio.h>
 #include <time.h>
+
 #define ERRNO (WSAGetLastError())
 #define SET_SOCK_BLOCK(s,block) { unsigned long __i=block?0:1; ioctlsocket(s,FIONBIO,&__i); }
-#ifndef EWOULDBLOCK
-  #define EWOULDBLOCK WSAEWOULDBLOCK
+
+#ifdef EWOULDBLOCK
+  #undef EWOULDBLOCK
 #endif
-#ifndef EINPROGRESS
-  #define EINPROGRESS WSAEWOULDBLOCK
+#define EWOULDBLOCK WSAEWOULDBLOCK
+
+#ifdef EINPROGRESS
+  #undef EINPROGRESS
 #endif
+#define EINPROGRESS WSAEWOULDBLOCK
+
 typedef int socklen_t;
 
 #else

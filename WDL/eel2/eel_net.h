@@ -34,9 +34,10 @@
     #define INVALID_SOCKET (-1)
   #endif
 #else
-  #ifndef ENOTCONN
-    #define ENOTCONN WSAENOTCONN
+  #ifdef ENOTCONN
+    #undef ENOTCONN
   #endif
+  #define ENOTCONN WSAENOTCONN
 #endif
 
 class eel_net_state
