@@ -7498,17 +7498,12 @@ BOOL SWELL_IsStaticText(HWND hwnd)
 BOOL ShellExecute(HWND hwndDlg, const char *action,  const char *content1, const char *content2, const char *content3, int blah)
 {
   const char *xdg = "/usr/bin/xdg-open";
-  const char *argv[3] = { NULL };
+  const char *argv[3] = { xdg };
   char *tmp=NULL;
 
   if (!content1 || !*content1) return FALSE;
 
-  if (!strnicmp(content1,"http://",7))
-  {
-    argv[0] = xdg;
-    argv[1] = content1;
-  }
-  else if (!stricmp(content1,"explorer.exe")) 
+  if (!stricmp(content1,"explorer.exe"))
   {
     const char *fn = content2;
     if (fn && !strnicmp(fn, "/select,\"", 9))
@@ -7520,22 +7515,19 @@ BOOL ShellExecute(HWND hwndDlg, const char *action,  const char *content1, const
     }
     if (!fn || !*fn) return FALSE;
 
-    argv[0] = xdg;
     argv[1] = fn;
   }
   else if (!stricmp(content1,"notepad.exe")||!stricmp(content1,"notepad"))
-  { 
+  {
     if (!content2 || !*content2) return FALSE;
-    argv[0] = xdg;
     argv[1] = content2;
   }
   else
   {
-    argv[0] = xdg;
     argv[1] = content1; // default to xdg-open for whatever else
   }
 
-  if (fork() == 0) 
+  if (fork() == 0)
   {
     for (int x=0;argv[x];x++) argv[x] = strdup(argv[x]);
     execv(argv[0],(char *const*)argv);
