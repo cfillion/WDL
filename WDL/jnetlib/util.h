@@ -27,13 +27,12 @@
 #ifndef _JNL_UTIL_H_
 #define _JNL_UTIL_H_
 
-class JNL
+namespace JNL
 {
-  public:
-    static int open_socketlib();
-    static void close_socketlib();
-    static unsigned int ipstr_to_addr(const char *cp);
-    static void addr_to_ipstr(unsigned int addr, char *host, int maxhostlen);
+  int open_socketlib();
+  void close_socketlib();
+  unsigned int ipstr_to_addr(const char *cp);
+  void addr_to_ipstr(unsigned int addr, char *host, int maxhostlen);
 };
 
 #endif //_UTIL_H_

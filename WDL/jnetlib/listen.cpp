@@ -15,13 +15,13 @@ JNL_Listen::JNL_Listen(short port, unsigned int which_interface)
 {
   m_port=port;
   m_socket = ::socket(AF_INET,SOCK_STREAM,0);
-  if (m_socket == JNL_INVALID_SOCKET)
+  if (m_socket == JNL::_INVALID_SOCKET)
   {
   }
   else
   {
     struct sockaddr_in sin;
-    jnl_set_sock_block(m_socket,0);
+    JNL::set_sock_block(m_socket,0);
     int bflag = 1;
     setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&bflag, sizeof(bflag));
     memset((char *) &sin, 0,sizeof(sin));
@@ -30,17 +30,17 @@ JNL_Listen::JNL_Listen(short port, unsigned int which_interface)
     sin.sin_addr.s_addr = which_interface?which_interface:INADDR_ANY;
     if (::bind(m_socket,(struct sockaddr *)&sin,sizeof(sin))) 
     {
-      shutdown(m_socket, JNL_SHUT_RDWR);
-      jnl_closesocket(m_socket);
-      m_socket=JNL_INVALID_SOCKET;
+      shutdown(m_socket, JNL::_SHUT_RDWR);
+      JNL::closesocket(m_socket);
+      m_socket=JNL::_INVALID_SOCKET;
     }
     else
     {  
       if (::listen(m_socket,8)==-1) 
       {
-        shutdown(m_socket, JNL_SHUT_RDWR);
-        jnl_closesocket(m_socket);
-        m_socket=JNL_INVALID_SOCKET;
+        shutdown(m_socket, JNL::_SHUT_RDWR);
+        JNL::closesocket(m_socket);
+        m_socket=JNL::_INVALID_SOCKET;
       }
     }
   }
@@ -48,23 +48,23 @@ JNL_Listen::JNL_Listen(short port, unsigned int which_interface)
 
 JNL_Listen::~JNL_Listen()
 {
-  if (m_socket!=JNL_INVALID_SOCKET)
+  if (m_socket!=JNL::_INVALID_SOCKET)
   {
-    shutdown(m_socket, JNL_SHUT_RDWR);
-    jnl_closesocket(m_socket);
+    shutdown(m_socket, JNL::_SHUT_RDWR);
+    JNL::closesocket(m_socket);
   }
 }
 
 JNL_IConnection *JNL_Listen::get_connect(int sendbufsize, int recvbufsize)
 {
-  if (m_socket == JNL_INVALID_SOCKET)
+  if (m_socket == JNL::_INVALID_SOCKET)
   {
     return NULL;
   }
   struct sockaddr_in saddr;
-  socklen_t length = sizeof(struct sockaddr_in);
-  JNL_SOCKET s = accept(m_socket, (struct sockaddr *) &saddr, &length);
-  if (s != JNL_INVALID_SOCKET)
+  JNL::socklen_t length = sizeof(struct sockaddr_in);
+  JNL::SOCKET s = accept(m_socket, (struct sockaddr *) &saddr, &length);
+  if (s != JNL::_INVALID_SOCKET)
   {
     JNL_IConnection *c=new JNL_Connection(NULL,sendbufsize, recvbufsize);
     c->connect(s,&saddr);

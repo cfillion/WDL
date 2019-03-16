@@ -14,25 +14,32 @@
   #include <stdio.h>
   #include <time.h>
 
-  typedef SOCKET JNL_SOCKET;
-  typedef int socklen_t;
+  namespace JNL
+  {
+    typedef int socklen_t;
+    typedef ::SOCKET SOCKET;
 
-  #define JNL_ERRNO (WSAGetLastError())
+    const SOCKET _INVALID_SOCKET = INVALID_SOCKET;
 
-  #define JNL_INVALID_SOCKET INVALID_SOCKET
+    const int _EWOULDBLOCK = WSAEWOULDBLOCK;
+    const int _EINPROGRESS = WSAEWOULDBLOCK; // not a typo
+    const int _ENOTCONN    = WSAENOTCONN;
 
-  #define JNL_EWOULDBLOCK WSAEWOULDBLOCK
-  #define JNL_EINPROGRESS WSAEWOULDBLOCK // not a typo
-  #define JNL_ENOTCONN    WSAENOTCONN
+    const int _SHUT_RDWR = 2; // SD_BOTH
 
-  #define JNL_SHUT_RDWR 2 // SD_BOTH
+    inline int last_error() { return WSAGetLastError(); }
 
-  #define jnl_set_sock_block(s,block) { unsigned long __i=block?0:1; ioctlsocket(s,FIONBIO,&__i); }
+    inline void set_sock_block(SOCKET socket, const bool block)
+    {
+      unsigned long __i = block ? 0 : 1;
+      ioctlsocket(socket, FIONBIO, &__i);
+    }
 
-  #define jnl_closesocket(s) ::closesocket(s)
+    inline int closesocket(SOCKET s) { return ::closesocket(s); }
 
-  #define jnl_stricmp(a,b) ::stricmp(a,b)
-  #define jnl_strnicmp(a,b,s) ::strnicmp(a,b,s)
+    inline int stricmp(const char *a, const char *b) { return ::stricmp(a, b); }
+    inline int strnicmp(const char *a, const char *b, size_t s) { return ::strnicmp(a, b, s); }
+  };
 #else
   #ifndef THREAD_SAFE
     #define THREAD_SAFE
@@ -59,24 +66,40 @@
   #include <errno.h>
   #include <string.h>
 
-  typedef int JNL_SOCKET;
+  namespace JNL
+  {
+    typedef ::socklen_t socklen_t;
+    typedef int SOCKET;
 
-  #define JNL_ERRNO errno
+    const SOCKET _INVALID_SOCKET = -1;
 
-  #define JNL_INVALID_SOCKET (-1)
+    const int _EWOULDBLOCK = EWOULDBLOCK;
+    const int _EINPROGRESS = EINPROGRESS;
+    const int _ENOTCONN    = ENOTCONN;
 
-  #define JNL_EWOULDBLOCK EWOULDBLOCK
-  #define JNL_EINPROGRESS EINPROGRESS
-  #define JNL_ENOTCONN    ENOTCONN
+    const int _SHUT_RDWR = SHUT_RDWR;
 
-  #define JNL_SHUT_RDWR SHUT_RDWR
+    inline int last_error() { return errno; }
 
-  #define jnl_set_sock_block(s,block) { int __flags; if ((__flags = fcntl(s, F_GETFL, 0)) != -1) { if (!block) __flags |= O_NONBLOCK; else __flags &= ~O_NONBLOCK; fcntl(s, F_SETFL, __flags);  } }
+    inline void set_sock_block(SOCKET socket, const bool block)
+    {
+      int __flags;
+      if ((__flags = fcntl(socket, F_GETFL, 0)) != -1)
+      {
+        if (!block)
+          __flags |= O_NONBLOCK;
+        else
+          __flags &= ~O_NONBLOCK;
 
-  #define jnl_closesocket(s) ::close(s)
+        fcntl(socket, F_SETFL, __flags);
+      }
+    }
 
-  #define jnl_stricmp(a,b) ::strcasecmp(a,b)
-  #define jnl_strnicmp(a,b,s) ::strncasecmp(a,b,s)
+    inline int closesocket(SOCKET s) { return ::close(s); }
+
+    inline int stricmp(const char *a, const char *b) { return ::strcasecmp(a, b); }
+    inline int strnicmp(const char *a, const char *b, size_t s) { return ::strncasecmp(a, b, s); }
+  };
 #endif // !_WIN32
 
 #endif //_NETINC_H_

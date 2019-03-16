@@ -11,6 +11,9 @@
 #include "util.h"
 #include "httpget.h"
 
+#ifdef strnicmp // from connection.h -> heapbuf.h -> wdltypes.h
+  #undef strnicmp
+#endif
 
 JNL_HTTPGet::JNL_HTTPGet(JNL_IAsyncDNS *dns, int recvbufsize, char *proxy)
 {
@@ -295,7 +298,7 @@ const char *JNL_HTTPGet::getheader(const char *headername)
   const char *p=m_recvheaders;
   while (*p)
   {
-    if (!strnicmp(headername,p,headername_len) && p[headername_len] == ':')
+    if (!JNL::strnicmp(headername,p,headername_len) && p[headername_len] == ':')
     {
       p += headername_len + 1;
       while (*p == ' ') p++;
@@ -359,7 +362,7 @@ run_again:
         m_http_state=-1;
         return -1;
       }
-      if (!strnicmp(buf,"Location:",9))
+      if (!JNL::strnicmp(buf,"Location:",9))
       {
         const char *p=buf+9; while (*p== ' ') p++;
         if (*p)

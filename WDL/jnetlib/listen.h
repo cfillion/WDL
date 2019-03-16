@@ -50,10 +50,10 @@ class JNL_Listen JNL_Listen_PARENTDEF
 
     JNL_IConnection *get_connect(int sendbufsize=8192, int recvbufsize=8192);
     short port(void) { return m_port; }
-    int is_error(void) { return (m_socket == JNL_INVALID_SOCKET); }
+    int is_error(void) { return (m_socket == JNL::_INVALID_SOCKET); }
 
   protected:
-    JNL_SOCKET m_socket;
+    JNL::SOCKET m_socket;
     short m_port;
 };
 
