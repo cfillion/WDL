@@ -40,8 +40,8 @@
 **   or even leave out the http:// altogether, it will still work.
 */
 
-#ifndef _HTTPGET_H_
-#define _HTTPGET_H_
+#ifndef _JNL_HTTPGET_H_
+#define _JNL_HTTPGET_H_
 
 #include "connection.h"
 

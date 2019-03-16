@@ -27,19 +27,6 @@
 #define JNL_NO_IMPLEMENTATION
 #include "../jnetlib/asyncdns.h"
 
-#ifndef _WIN32
-  // this can probably be removed after a merge...
-  typedef int SOCKET;
-  #ifndef INVALID_SOCKET
-    #define INVALID_SOCKET (-1)
-  #endif
-#else
-  #ifdef ENOTCONN
-    #undef ENOTCONN
-  #endif
-  #define ENOTCONN WSAENOTCONN
-#endif
-
 class eel_net_state
 {
   public:
@@ -51,13 +38,13 @@ class eel_net_state
 
     struct connection_state {
       char *hostname; // set during resolve only
-      SOCKET sock;
+      JNL_SOCKET sock;
       int state; // STATE_RESOLVING...
       int port;
       bool blockmode;
     };
     WDL_TypedBuf<connection_state> m_cons;
-    WDL_IntKeyedArray<SOCKET> m_listens;
+    WDL_IntKeyedArray<JNL_SOCKET> m_listens;
     JNL_IAsyncDNS *m_dns;
 
     EEL_F onConnect(char *hostNameOwned, int port, int block);
@@ -85,7 +72,7 @@ eel_net_state::eel_net_state(int max_con, JNL_IAsyncDNS *dns)
   for (x=0;x<m_cons.GetSize();x++)
   {
     m_cons.Get()[x].state = STATE_FREE;
-    m_cons.Get()[x].sock = INVALID_SOCKET;
+    m_cons.Get()[x].sock = JNL_INVALID_SOCKET;
     m_cons.Get()[x].hostname = NULL;
   }
   m_dns=dns;
@@ -96,19 +83,19 @@ eel_net_state::~eel_net_state()
   int x;
   for (x=0;x<m_cons.GetSize();x++)
   {
-    SOCKET s=m_cons.Get()[x].sock;
-    if (s != INVALID_SOCKET) 
+    JNL_SOCKET s=m_cons.Get()[x].sock;
+    if (s != JNL_INVALID_SOCKET)
     {
-      shutdown(s,SHUT_RDWR);
-      closesocket(s);
+      shutdown(s,JNL_SHUT_RDWR);
+      jnl_closesocket(s);
     }
     free(m_cons.Get()[x].hostname);
   }
   for (x=0;x<m_listens.GetSize();x++)
   {
-    SOCKET s=m_listens.Enumerate(x);
-    shutdown(s, SHUT_RDWR);
-    closesocket(s);
+    JNL_SOCKET s=m_listens.Enumerate(x);
+    shutdown(s, JNL_SHUT_RDWR);
+    jnl_closesocket(s);
   }
 }
 EEL_F eel_net_state::onConnect(char *hostNameOwned, int port, int block)
@@ -184,17 +171,17 @@ EEL_F eel_net_state::onListen(void *opaque, EEL_F handle, int mode, EEL_F *ifStr
     WSAStartup(MAKEWORD(1, 1), &wsaData);
   }
 #endif
-  SOCKET *sockptr = m_listens.GetPtr(port);
+  JNL_SOCKET *sockptr = m_listens.GetPtr(port);
   if (mode<0)
   {
     if (!sockptr) return -1.0;
 
-    SOCKET ss=*sockptr;
+    JNL_SOCKET ss=*sockptr;
     m_listens.Delete(port);
-    if (ss != INVALID_SOCKET) 
+    if (ss != JNL_INVALID_SOCKET)
     {
-      shutdown(ss, SHUT_RDWR);
-      closesocket(ss);
+      shutdown(ss, JNL_SHUT_RDWR);
+      jnl_closesocket(ss);
     }
     return 0.0;
   }
@@ -215,30 +202,30 @@ EEL_F eel_net_state::onListen(void *opaque, EEL_F handle, int mode, EEL_F *ifStr
     if (!sin.sin_addr.s_addr || sin.sin_addr.s_addr==INADDR_NONE) sin.sin_addr.s_addr = INADDR_ANY;
     sin.sin_family = AF_INET;
     sin.sin_port = htons( (short) port );
-    SOCKET sock = socket(AF_INET,SOCK_STREAM,0);
-    if (sock != INVALID_SOCKET)
+    JNL_SOCKET sock = socket(AF_INET,SOCK_STREAM,0);
+    if (sock != JNL_INVALID_SOCKET)
     {
-      SET_SOCK_BLOCK(sock,0);
+      jnl_set_sock_block(sock,0);
       if (bind(sock,(struct sockaddr *)&sin,sizeof(sin)) || listen(sock,8)==-1) 
       {
-        shutdown(sock, SHUT_RDWR);
-        closesocket(sock);
-        sock=INVALID_SOCKET;
+        shutdown(sock, JNL_SHUT_RDWR);
+        jnl_closesocket(sock);
+        sock=JNL_INVALID_SOCKET;
       }
     }
 #ifdef EEL_STRING_DEBUGOUT
-    //if (sock == INVALID_SOCKET) EEL_STRING_DEBUGOUT("tcp_listen(%d): failed listening on port",port);
+    //if (sock == JNL_INVALID_SOCKET) EEL_STRING_DEBUGOUT("tcp_listen(%d): failed listening on port",port);
     // we report -1 to the caller, no need to error message
 #endif
     m_listens.Insert(port,sock);
     sockptr = m_listens.GetPtr(port);
   }
-  if (!sockptr || *sockptr == INVALID_SOCKET) return -1;
+  if (!sockptr || *sockptr == JNL_INVALID_SOCKET) return -1;
 
   struct sockaddr_in saddr;
   socklen_t length = sizeof(struct sockaddr_in);
-  SOCKET newsock = accept(*sockptr, (struct sockaddr *) &saddr, &length);
-  if (newsock == INVALID_SOCKET) 
+  JNL_SOCKET newsock = accept(*sockptr, (struct sockaddr *) &saddr, &length);
+  if (newsock == JNL_INVALID_SOCKET)
   {
     return 0; // nothing to report here
   }
@@ -275,8 +262,8 @@ EEL_F eel_net_state::onListen(void *opaque, EEL_F handle, int mode, EEL_F *ifStr
       return x + CONNECTION_ID_BASE;
     }
   }
-  shutdown(newsock, SHUT_RDWR);
-  closesocket(newsock);
+  shutdown(newsock, JNL_SHUT_RDWR);
+  jnl_closesocket(newsock);
   return -1;
 
 
@@ -284,29 +271,29 @@ EEL_F eel_net_state::onListen(void *opaque, EEL_F handle, int mode, EEL_F *ifStr
 
 int eel_net_state::__run_connect(connection_state *cs, unsigned int ip)
 {
-  SOCKET s=socket(AF_INET,SOCK_STREAM,0);
-  if (s == INVALID_SOCKET) return 0;
+  JNL_SOCKET s=socket(AF_INET,SOCK_STREAM,0);
+  if (s == JNL_INVALID_SOCKET) return 0;
 
-  if (!cs->blockmode) SET_SOCK_BLOCK(s,0);
+  if (!cs->blockmode) jnl_set_sock_block(s,0);
 
   struct sockaddr_in sa={0,};
   sa.sin_family=AF_INET;
   sa.sin_addr.s_addr = ip;
   sa.sin_port = htons(cs->port);
-  if (!connect(s,(struct sockaddr *)&sa,16) || (!cs->blockmode && ERRNO == EINPROGRESS))
+  if (!connect(s,(struct sockaddr *)&sa,16) || (!cs->blockmode && JNL_ERRNO == JNL_EINPROGRESS))
   {
     cs->state = STATE_CONNECTED;
     cs->sock = s;
     return 1;
   }
-  shutdown(s, SHUT_RDWR);
-  closesocket(s);
+  shutdown(s, JNL_SHUT_RDWR);
+  jnl_closesocket(s);
   return 0;
 }
 
 int eel_net_state::__run(connection_state *cs)
 {
-  if (cs->sock != INVALID_SOCKET) return 0;
+  if (cs->sock != JNL_INVALID_SOCKET) return 0;
 
   if (!cs->hostname) return -1;
 
@@ -333,15 +320,15 @@ int eel_net_state::do_recv(void *opaque, EEL_F h, char *buf, int maxlen)
   {
     connection_state *s=m_cons.Get()+idx;
 #ifdef EEL_STRING_DEBUGOUT
-    if (s->sock == INVALID_SOCKET && !s->hostname) 
+    if (s->sock == JNL_INVALID_SOCKET && !s->hostname)
       EEL_STRING_DEBUGOUT("tcp_recv: connection identifier %f is not open",h);
 #endif
-    if (__run(s) || s->sock == INVALID_SOCKET) return s->state == STATE_ERR ? -1 : 0;
+    if (__run(s) || s->sock == JNL_INVALID_SOCKET) return s->state == STATE_ERR ? -1 : 0;
 
     if (maxlen == 0) return 0;
 
     const int rv=(int)recv(s->sock,buf,maxlen,0);
-    if (rv < 0 && !s->blockmode && (ERRNO == EWOULDBLOCK||ERRNO==ENOTCONN)) return 0;
+    if (rv < 0 && !s->blockmode && (JNL_ERRNO == JNL_EWOULDBLOCK||JNL_ERRNO==JNL_ENOTCONN)) return 0;
 
     if (!rv) return -1; // TCP, 0=connection terminated
 
@@ -360,12 +347,12 @@ int eel_net_state::do_send(void *opaque, EEL_F h, const char *src, int len)
   {
     connection_state *s=m_cons.Get()+idx;
 #ifdef EEL_STRING_DEBUGOUT
-    if (s->sock == INVALID_SOCKET && !s->hostname) 
+    if (s->sock == JNL_INVALID_SOCKET && !s->hostname)
       EEL_STRING_DEBUGOUT("tcp_send: connection identifier %f is not open",h);
 #endif
-    if (__run(s) || s->sock == INVALID_SOCKET) return s->state == STATE_ERR ? -1 : 0;
+    if (__run(s) || s->sock == JNL_INVALID_SOCKET) return s->state == STATE_ERR ? -1 : 0;
     const int rv=(int)send(s->sock,src,len,0);
-    if (rv < 0 && !s->blockmode && (ERRNO == EWOULDBLOCK || ERRNO==ENOTCONN)) return 0;
+    if (rv < 0 && !s->blockmode && (JNL_ERRNO == JNL_EWOULDBLOCK || JNL_ERRNO==JNL_ENOTCONN)) return 0;
     return rv;
   }
   else
@@ -386,9 +373,9 @@ EEL_F eel_net_state::set_block(void *opaque, EEL_F handle, bool block)
     if (s->blockmode != block)
     {
       s->blockmode=block;
-      if (s->sock != INVALID_SOCKET) 
+      if (s->sock != JNL_INVALID_SOCKET)
       {
-        SET_SOCK_BLOCK(s->sock,(block?1:0));
+        jnl_set_sock_block(s->sock,(block?1:0));
       }
       else
       {
@@ -418,11 +405,11 @@ EEL_F eel_net_state::onClose(void *opaque, EEL_F handle)
     free(s->hostname);
     s->hostname = NULL;
     s->state = STATE_ERR;
-    if (s->sock != INVALID_SOCKET)
+    if (s->sock != JNL_INVALID_SOCKET)
     {
-      shutdown(s->sock,SHUT_RDWR);
-      closesocket(s->sock);
-      s->sock = INVALID_SOCKET;
+      shutdown(s->sock,JNL_SHUT_RDWR);
+      jnl_closesocket(s->sock);
+      s->sock = JNL_INVALID_SOCKET;
       return 1.0;
     }
     else if (!hadhn)

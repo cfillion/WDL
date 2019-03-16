@@ -10,8 +10,8 @@
 ** for a mini-web server see webserver.h
 */
 
-#ifndef _HTTPSERV_H_
-#define _HTTPSERV_H_
+#ifndef _JNL_HTTPSERV_H_
+#define _JNL_HTTPSERV_H_
 
 #include "connection.h"
 

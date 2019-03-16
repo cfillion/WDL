@@ -16,8 +16,8 @@
 **   4. enjoy.
 */
 
-#ifndef _ASYNCDNS_H_
-#define _ASYNCDNS_H_
+#ifndef _JNL_ASYNCDNS_H_
+#define _JNL_ASYNCDNS_H_
 
 #include <time.h>
 

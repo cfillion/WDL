@@ -24,8 +24,8 @@
 **
 */
 
-#ifndef _UTIL_H_
-#define _UTIL_H_
+#ifndef _JNL_UTIL_H_
+#define _JNL_UTIL_H_
 
 class JNL
 {
