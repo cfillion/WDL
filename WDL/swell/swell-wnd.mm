@@ -4289,14 +4289,49 @@ bool ListView_SetItemState(HWND h, int ipos, UINT state, UINT statemask)
   if (!h || ![(id)h isKindOfClass:[SWELL_ListView class]]) return false;
   SWELL_ListView *tv=(SWELL_ListView*)h;
   static int _is_doing_all;
+  const bool isSingle = tv->m_lbMode ? !(tv->style & LBS_EXTENDEDSEL) : !!(tv->style&LVS_SINGLESEL);
   
   if (ipos == -1)
   {
+    NSIndexSet *oldSelection;
+    if (statemask & LVIS_SELECTED)
+    {
+      oldSelection = [tv selectedRowIndexes];
+      id delegate = [tv delegate];
+      [tv setDelegate:nil]; // disable tableViewSelectionDidChange events
+      if (state & LVIS_SELECTED)
+      {
+        if (isSingle)
+          statemask &= ~LVIS_SELECTED; // no-op and don't send LVN_ITEMCHANGED
+        else
+          [tv selectAll:nil]; // much faster than using selectRowIndexes repeatedly
+      }
+      else
+        [tv deselectAll:nil];
+      [tv setDelegate:delegate];
+    }
     int x;
     int n=ListView_GetItemCount(h);
     _is_doing_all++;
     for (x = 0; x < n; x ++)
-      ListView_SetItemState(h,x,state,statemask);
+    {
+      ListView_SetItemState(h,x,state,statemask & ~LVIS_SELECTED);
+
+      if (statemask & LVIS_SELECTED)
+      {
+        if ([oldSelection containsIndex:x] == !(state & LVIS_SELECTED))
+        {
+          static int __rent;
+          if (!__rent)
+          {
+            __rent=1;
+            NMLISTVIEW nm={{(HWND)h,(UINT_PTR)[tv tag],LVN_ITEMCHANGED},x,0,state,};
+            SendMessage(GetParent(h),WM_NOTIFY,nm.hdr.idFrom,(LPARAM)&nm);
+            __rent=0;
+          }
+        }
+      }
+    }
     _is_doing_all--;
     ListView_RedrawItems(h,0,n-1);
     return true;
@@ -4323,14 +4358,24 @@ bool ListView_SetItemState(HWND h, int ipos, UINT state, UINT statemask)
   bool didsel=false;
   if (statemask & LVIS_SELECTED)
   {
+    id delegate = [tv delegate];
     if (state & LVIS_SELECTED)
-    {      
-      bool isSingle = tv->m_lbMode ? !(tv->style & LBS_EXTENDEDSEL) : !!(tv->style&LVS_SINGLESEL);
-      if (![tv isRowSelected:ipos]) { didsel=true;  [tv selectRowIndexes:[NSIndexSet indexSetWithIndex:ipos] byExtendingSelection:isSingle?NO:YES]; }
+    {
+      if ((didsel=![tv isRowSelected:ipos]))
+      {
+        [tv setDelegate:nil];
+        [tv selectRowIndexes:[NSIndexSet indexSetWithIndex:ipos] byExtendingSelection:!isSingle];
+        [tv setDelegate:delegate];
+      }
     }
     else
     {
-      if ([tv isRowSelected:ipos]) { didsel=true; [tv deselectRow:ipos];  }
+      if ((didsel=[tv isRowSelected:ipos]))
+      {
+        [tv setDelegate:nil];
+        [tv deselectRow:ipos];
+        [tv setDelegate:delegate];
+      }
     }
   }
   if (statemask & LVIS_FOCUSED)
